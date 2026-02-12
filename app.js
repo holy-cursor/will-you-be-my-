@@ -747,13 +747,14 @@ async function getDataFromURL() {
   }
 
   // Fallback: LZ compressed data
-  // Note: legacy links won't have sender name
+  // Note: new format supports sender, old doesn't
   const data = decodeData(hash);
-  if (data) return { data: { ...data, sender: null }, code: hash };
+  // Do NOT override sender with null here!
+  if (data) return { data, code: hash };
 
   // Fallback: legacy base64
   const legacy = decodeLegacy(hash);
-  if (legacy) return { data: { ...legacy, sender: null }, code: hash };
+  if (legacy) return { data: legacy, code: hash };
 
   return null;
 }
