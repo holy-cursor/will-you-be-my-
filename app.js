@@ -623,46 +623,49 @@ function setupNoDodge(noBtn, yesBtn) {
 }
 
 // ===== PARSE URL =====
-function getDataFromURL() {
-  // Hash: #COMPRESSED_DATA
-  if (window.location.hash && window.location.hash.length > 1) {
-    const encoded = window.location.hash.substring(1);
-    // Try new LZ format first
-    const data = decodeData(encoded);
-    if (data) return { data, encoded };
-    // Fallback: old base64 format
-    const legacy = decodeLegacy(encoded);
-    if (legacy) return { data: legacy, encoded };
+// Short code = 6 alphanumeric chars | Long = compressed/base64 data
+async function getDataFromURL() {
+  if (!window.location.hash || window.location.hash.length <= 1) return null;
+  const hash = window.location.hash.substring(1);
+
+  // Short code: 6 alphanumeric characters → fetch from server
+  if (/^[a-z0-9]{6}$/.test(hash)) {
+    try {
+      const res = await fetch(`/api/load/${hash}`);
+      if (res.ok) {
+        const data = await res.json();
+        return { data: { name: data.n, paragraphs: data.p }, code: hash };
+      }
+    } catch (e) {
+      console.log('API unavailable, trying inline decode');
+    }
   }
-  // Query: ?d= param
-  const params = new URLSearchParams(window.location.search);
-  const d = params.get('d');
-  if (d) {
-    const data = decodeData(d);
-    if (data) return { data, encoded: d };
-    const legacy = decodeLegacy(d);
-    if (legacy) return { data: legacy, encoded: d };
-  }
+
+  // Fallback: LZ compressed data in hash
+  const data = decodeData(hash);
+  if (data) return { data, code: hash };
+
+  // Fallback: legacy base64
+  const legacy = decodeLegacy(hash);
+  if (legacy) return { data: legacy, code: hash };
+
   return null;
 }
 
 // ===== INIT =====
-function init() {
-  const result = getDataFromURL();
+async function init() {
+  const result = await getDataFromURL();
 
   if (result) {
-    const { data, encoded } = result;
-    const linkId = getLinkId(encoded);
+    const { data, code } = result;
+    const linkId = getLinkId(code);
 
-    // Check if already opened
     if (isLinkOpened(linkId)) {
       showScreen(usedScreen);
       return;
     }
 
-    // Mark as opened immediately
     markLinkAsOpened(linkId);
-
     showScreen(speechScreen);
     buildSpeechPages(data.name, data.paragraphs);
   } else {
@@ -671,7 +674,7 @@ function init() {
 }
 
 // ===== GENERATE LINK =====
-generateBtn.addEventListener('click', () => {
+generateBtn.addEventListener('click', async () => {
   const name = nameInput.value.trim();
   if (!name) {
     nameInput.style.borderColor = '#ff4d6d';
@@ -698,15 +701,38 @@ generateBtn.addEventListener('click', () => {
     ];
   }
 
-  const encoded = encodeData(name, paragraphs);
+  // Disable button while generating
+  generateBtn.disabled = true;
+  generateBtn.innerHTML = '<span>Generating...</span>';
 
   let basePath = window.location.pathname;
   if (!basePath.endsWith('.html')) {
     basePath = basePath.endsWith('/') ? basePath + 'index.html' : basePath + '/index.html';
   }
-  const link = `${window.location.origin}${basePath}#${encoded}`;
+  const baseUrl = `${window.location.origin}${basePath}`;
 
-  linkText.value = link;
+  try {
+    // Try to save via API for short code
+    const res = await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ n: name, p: paragraphs })
+    });
+
+    if (res.ok) {
+      const { code } = await res.json();
+      linkText.value = `${baseUrl}#${code}`;
+    } else {
+      throw new Error('API error');
+    }
+  } catch {
+    // Fallback: LZ-compressed in URL
+    const encoded = encodeData(name, paragraphs);
+    linkText.value = `${baseUrl}#${encoded}`;
+  }
+
+  generateBtn.disabled = false;
+  generateBtn.innerHTML = '<span>Generate Link</span><svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
   linkOutput.classList.remove('hidden');
   copiedMsg.classList.add('hidden');
 });
