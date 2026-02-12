@@ -1,7 +1,6 @@
 // ===== SUPABASE CONFIG =====
-// TODO: Replace these with your own Supabase project values
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';  // e.g. https://abcdefg.supabase.co
-const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'; // your anon/public key
+const SUPABASE_URL = 'https://suawouxirbpkitrsvhfk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_9ls-aqTaxeZdov538oJB2Q_hoFMZhaO';
 
 // ===== DOM ELEMENTS =====
 const heartsBg = document.getElementById('heartsBg');
