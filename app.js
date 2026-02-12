@@ -9,6 +9,7 @@ const speechScreen = document.getElementById('speechScreen');
 const yesScreen = document.getElementById('yesScreen');
 const usedScreen = document.getElementById('usedScreen');
 const nameInput = document.getElementById('nameInput');
+const senderInput = document.getElementById('senderInput'); // New sender input
 const speechInput = document.getElementById('speechInput');
 const generateBtn = document.getElementById('generateBtn');
 const linkOutput = document.getElementById('linkOutput');
@@ -416,8 +417,8 @@ function buildSpeechPages(name, paragraphs) {
     setTimeout(() => launchConfetti('yesConfetti'), 200);
     setTimeout(() => launchConfetti('yesConfetti'), 1000);
     setTimeout(() => launchConfetti('yesConfetti'), 2000);
-    // Generate the downloadable card
-    setTimeout(() => generateValentineCard(name), 300);
+    // Generate the downloadable card (send recipient name AND sender name)
+    setTimeout(() => generateValentineCard(name, window.currentSender), 300);
   });
 
   setupNoDodge(noBtn, yesBtn);
@@ -425,7 +426,7 @@ function buildSpeechPages(name, paragraphs) {
 }
 
 // ===== GENERATE DOWNLOADABLE VALENTINE CARD =====
-function generateValentineCard(name) {
+function generateValentineCard(name, sender) {
   const canvas = document.getElementById('cardCanvas');
   const ctx = canvas.getContext('2d');
   const W = 1080, H = 1920;
@@ -517,18 +518,22 @@ function generateValentineCard(name) {
   ctx.fillStyle = yesGrad;
   ctx.fillText('I said YES!', W / 2, cardY + 420);
 
-  // Name
+  // "to being [Sender]'s"
   ctx.font = '52px "Segoe UI", Arial, sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.7)';
   ctx.fillText(`to being`, W / 2, cardY + 530);
+
+  // Sender Name
+  const senderToShow = (sender || "a Secret Admirer");
 
   ctx.font = 'bold 72px "Segoe UI", Arial, sans-serif';
   const nameGrad = ctx.createLinearGradient(W / 2 - 200, 0, W / 2 + 200, 0);
   nameGrad.addColorStop(0, '#ff758f');
   nameGrad.addColorStop(1, '#e8b4f8');
   ctx.fillStyle = nameGrad;
-  ctx.fillText(`${name}'s`, W / 2, cardY + 640);
+  ctx.fillText(`${senderToShow}'s`, W / 2, cardY + 640);
 
+  // "Valentine"
   ctx.font = 'bold 110px "Segoe UI", Arial, sans-serif';
   const valGrad = ctx.createLinearGradient(W / 2 - 300, 0, W / 2 + 300, 0);
   valGrad.addColorStop(0, '#ff4d6d');
@@ -634,8 +639,13 @@ function genCode() {
   return code;
 }
 
-async function supabaseSave(name, paragraphs) {
+async function supabaseSave(name, sender, paragraphs) {
   const code = genCode();
+  // Store sender in the 'paragraphs' JSONB column to avoid a schema migration
+  // New format: { s: sender, p: [paragraphs] }
+  // Old format was just [paragraphs] array
+  const data = sender ? { s: sender, p: paragraphs } : paragraphs;
+
   const res = await fetch(`${SUPABASE_URL}/rest/v1/valentines`, {
     method: 'POST',
     headers: {
@@ -644,7 +654,7 @@ async function supabaseSave(name, paragraphs) {
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     },
-    body: JSON.stringify({ code, name, paragraphs })
+    body: JSON.stringify({ code, name, paragraphs: data })
   });
   if (!res.ok) throw new Error('Save failed');
   return code;
@@ -658,11 +668,71 @@ async function supabaseLoad(code) {
   if (!res.ok) return null;
   const rows = await res.json();
   if (rows.length === 0) return null;
-  return { name: rows[0].name, paragraphs: rows[0].paragraphs };
+
+  const rawData = rows[0].paragraphs;
+  // Handle legacy array format vs new object format
+  const paragraphs = Array.isArray(rawData) ? rawData : rawData.p;
+  const sender = Array.isArray(rawData) ? null : rawData.s;
+
+  return { name: rows[0].name, sender, paragraphs };
+}
+
+async function trackVisit(code) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/page_visits`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        code: code || null,
+        ua: navigator.userAgent
+      })
+    });
+  } catch (e) { /* ignore analytics errors */ }
+}
+
+async function dataStats() {
+  if (window.location.hash !== '#stats') return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/page_visits?select=count`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Range': '0-0', 'Prefer': 'count=exact' }
+    });
+    const count = res.headers.get('content-range').split('/')[1];
+    alert(`Total Page Visits: ${count} 📈`);
+  } catch (e) { alert('Could not load stats'); }
+}
+
+// ===== ENCODING HELPERS =====
+function encodeData(name, sender, paragraphs) {
+  const data = { n: name, s: sender, p: paragraphs };
+  return LZString.compressToEncodedURIComponent(JSON.stringify(data));
+}
+
+function decodeData(hash) {
+  try {
+    const json = LZString.decompressFromEncodedURIComponent(hash);
+    if (!json) return null;
+    const data = JSON.parse(json);
+    return { name: data.n, sender: data.s, paragraphs: data.p };
+  } catch (e) { return null; }
+}
+
+function decodeLegacy(hash) {
+  try {
+    const json = atob(hash); // Base64 decode
+    const data = JSON.parse(json);
+    // Legacy format had name and paragraphs only
+    return { name: data.name, sender: null, paragraphs: data.paragraphs };
+  } catch (e) { return null; }
 }
 
 // ===== PARSE URL =====
 async function getDataFromURL() {
+  if (window.location.hash === '#stats') { dataStats(); return null; }
+
   if (!window.location.hash || window.location.hash.length <= 1) return null;
   const hash = window.location.hash.substring(1);
 
@@ -676,13 +746,14 @@ async function getDataFromURL() {
     }
   }
 
-  // Fallback: LZ compressed data in hash
+  // Fallback: LZ compressed data
+  // Note: legacy links won't have sender name
   const data = decodeData(hash);
-  if (data) return { data, code: hash };
+  if (data) return { data: { ...data, sender: null }, code: hash };
 
   // Fallback: legacy base64
   const legacy = decodeLegacy(hash);
-  if (legacy) return { data: legacy, code: hash };
+  if (legacy) return { data: { ...legacy, sender: null }, code: hash };
 
   return null;
 }
@@ -701,23 +772,34 @@ async function init() {
     }
 
     markLinkAsOpened(linkId);
+    trackVisit(code); // Log analytics
+
     showScreen(speechScreen);
+    // Pass sender to the page builder (stored in a global or passed down)
+    window.currentSender = data.sender; // Store for card generation
     buildSpeechPages(data.name, data.paragraphs);
   } else {
+    trackVisit(null); // Log homepage visit
     showScreen(creatorScreen);
   }
 }
 
 // ===== GENERATE LINK =====
 generateBtn.addEventListener('click', async () => {
-  const name = nameInput.value.trim();
-  if (!name) {
+  const senderName = senderInput.value.trim(); // Sender Name
+  const recipientName = nameInput.value.trim();
+
+  if (!recipientName) {
     nameInput.style.borderColor = '#ff4d6d';
     nameInput.style.animation = 'shake 0.5s ease';
     setTimeout(() => { nameInput.style.borderColor = ''; nameInput.style.animation = ''; }, 600);
     nameInput.focus();
     return;
   }
+
+  // If sender name is missing, default to "Secret Admirer" if we want, or just leave it null
+  // User asked for "add name of person sending", so let's use it if present
+  const finalSender = senderName || "a Secret Admirer";
 
   const rawText = speechInput.value.trim();
   let paragraphs;
@@ -743,11 +825,11 @@ generateBtn.addEventListener('click', async () => {
 
   try {
     // Save to Supabase → get short code
-    const code = await supabaseSave(name, paragraphs);
+    const code = await supabaseSave(recipientName, finalSender, paragraphs);
     linkText.value = `${baseUrl}#${code}`;
   } catch {
     // Fallback: LZ-compressed in URL
-    const encoded = encodeData(name, paragraphs);
+    const encoded = encodeData(recipientName, paragraphs);
     linkText.value = `${baseUrl}#${encoded}`;
   }
 
@@ -775,6 +857,12 @@ nameInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
     speechInput.focus();
+  }
+});
+senderInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    nameInput.focus();
   }
 });
 
