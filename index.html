@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a0011">
+  <title>💌 Will You Be My Valentine?</title>
+  <meta name="description" content="A special Valentine's Day surprise just for you!">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Outfit:wght@300;400;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- Floating hearts background -->
+  <div class="hearts-bg" id="heartsBg"></div>
+
+  <!-- SCREEN 1: Creator screen -->
+  <div class="screen active" id="creatorScreen">
+    <div class="screen-scroll">
+      <div class="card glass-card creator-card">
+        <div class="envelope-icon">💌</div>
+        <h1 class="title script">Send a Valentine</h1>
+        <p class="subtitle">Write your message, enter their name, and share the magic link ✨</p>
+        <div class="input-group">
+          <label for="nameInput">Their Name</label>
+          <input type="text" id="nameInput" placeholder="e.g. Emma" maxlength="30" autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label for="speechInput">Your Message <span class="label-hint">(one paragraph per line)</span></label>
+          <textarea id="speechInput" rows="5"
+            placeholder="I've been thinking about how to say this...&#10;&#10;Every time I see you, my heart skips a beat 🌟&#10;&#10;You make the ordinary feel extraordinary ✨&#10;&#10;So instead, I'll ask you something simple..."></textarea>
+        </div>
+        <button class="btn btn-primary pulse-btn" id="generateBtn">
+          <span>Generate Link</span>
+          <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+        <div class="link-output hidden" id="linkOutput">
+          <p class="link-label">Share this link with them 💕</p>
+          <div class="link-box">
+            <input type="text" id="linkText" readonly>
+            <button class="btn-copy" id="copyBtn" title="Copy link">📋</button>
+          </div>
+          <p class="copied-msg hidden" id="copiedMsg">Copied to clipboard! 💖</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: Full-page snap-scroll speech (built dynamically) -->
+  <div class="screen" id="speechScreen">
+    <div class="snap-scroll" id="snapScroll"></div>
+  </div>
+
+  <!-- SCREEN 3: Yes response -->
+  <div class="screen" id="yesScreen">
+    <div class="confetti-container" id="yesConfetti"></div>
+    <div class="card glass-card yes-card">
+      <div class="mega-heart">💖</div>
+      <h1 class="title script">Yaaay! 🥳</h1>
+      <p class="yes-message">I knew you'd say yes! You just made me the happiest person in the world!</p>
+      <div class="love-emojis">
+        <span>💕</span><span>🥰</span><span>💘</span><span>🌹</span><span>💝</span>
+      </div>
+      <p class="forever-text">Forever & Always ♾️</p>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: Already opened -->
+  <div class="screen" id="usedScreen">
+    <div class="card glass-card used-card">
+      <div class="used-emoji">💌</div>
+      <h1 class="title script">Oops!</h1>
+      <p class="used-message">This valentine has already been opened by someone special 💕</p>
+      <p class="used-sub">Each love letter can only be read once ✨</p>
+      <div class="used-hearts">
+        <span>🔒</span><span>💖</span><span>🔒</span>
+      </div>
+      <a href="/" class="btn btn-primary" style="margin-top:20px;text-decoration:none;">
+        <span>Send Your Own Valentine 💌</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
