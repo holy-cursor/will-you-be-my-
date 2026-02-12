@@ -63,14 +63,24 @@
   <!-- SCREEN 3: Yes response -->
   <div class="screen" id="yesScreen">
     <div class="confetti-container" id="yesConfetti"></div>
-    <div class="card glass-card yes-card">
-      <div class="mega-heart">💖</div>
-      <h1 class="title script">Yaaay! 🥳</h1>
-      <p class="yes-message">I knew you'd say yes! You just made me the happiest person in the world!</p>
-      <div class="love-emojis">
-        <span>💕</span><span>🥰</span><span>💘</span><span>🌹</span><span>💝</span>
+    <div class="screen-scroll">
+      <div class="card glass-card yes-card">
+        <div class="mega-heart">💖</div>
+        <h1 class="title script">Yaaay! 🥳</h1>
+        <p class="yes-message">I knew you'd say yes! You just made me the happiest person in the world!</p>
+        <div class="love-emojis">
+          <span>💕</span><span>🥰</span><span>💘</span><span>🌹</span><span>💝</span>
+        </div>
+        <p class="forever-text">Forever & Always ♾️</p>
+        <div class="download-section">
+          <p class="download-label">Save this moment & send it back 💌</p>
+          <canvas id="cardCanvas" width="1080" height="1920" style="display:none"></canvas>
+          <img class="card-preview" id="cardPreview" alt="Your Valentine card">
+          <button class="btn btn-primary download-btn" id="downloadBtn">
+            <span>📥 Save Card</span>
+          </button>
+        </div>
       </div>
-      <p class="forever-text">Forever & Always ♾️</p>
     </div>
   </div>
 

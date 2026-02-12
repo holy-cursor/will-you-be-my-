@@ -603,6 +603,34 @@ body {
   background-clip: text;
 }
 
+/* ===== DOWNLOAD SECTION ===== */
+.download-section {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+  animation: slideUp 0.8s ease 0.5s both;
+}
+
+.download-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.card-preview {
+  width: 100%;
+  max-width: 240px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(255, 77, 109, 0.2);
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.download-btn {
+  animation: pulse 2.5s ease-in-out infinite;
+}
+
 /* ===== FLOATING HEARTS ===== */
 .hearts-bg {
   position: fixed;

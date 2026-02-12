@@ -183,10 +183,163 @@ function buildSpeechPages(name, paragraphs) {
     setTimeout(() => launchConfetti('yesConfetti'), 200);
     setTimeout(() => launchConfetti('yesConfetti'), 1000);
     setTimeout(() => launchConfetti('yesConfetti'), 2000);
+    // Generate the downloadable card
+    setTimeout(() => generateValentineCard(name), 300);
   });
 
   setupNoDodge(noBtn, yesBtn);
   setupFinalPageDetection(finalPage);
+}
+
+// ===== GENERATE DOWNLOADABLE VALENTINE CARD =====
+function generateValentineCard(name) {
+  const canvas = document.getElementById('cardCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = 1080, H = 1920;
+
+  // Background gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+  bgGrad.addColorStop(0, '#1a0011');
+  bgGrad.addColorStop(0.3, '#2d0a1e');
+  bgGrad.addColorStop(0.6, '#1a0a2e');
+  bgGrad.addColorStop(1, '#0d001a');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Decorative glow circles
+  const drawGlow = (x, y, r, color, alpha) => {
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'transparent');
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    ctx.globalAlpha = 1;
+  };
+  drawGlow(200, 300, 400, '#ff4d6d', 0.12);
+  drawGlow(880, 500, 350, '#e8b4f8', 0.1);
+  drawGlow(540, 1400, 500, '#ff477e', 0.08);
+  drawGlow(100, 1600, 300, '#e8b4f8', 0.06);
+
+  // Scattered heart emojis
+  ctx.globalAlpha = 0.15;
+  ctx.font = '60px serif';
+  ctx.textAlign = 'center';
+  const hearts = ['💖', '💕', '💗', '💘', '❤️', '💝', '🩷', '✨'];
+  const positions = [
+    [120, 200], [960, 180], [180, 600], [900, 550], [100, 1000], [980, 950],
+    [200, 1350], [880, 1400], [150, 1700], [950, 1650], [500, 250], [540, 1750]
+  ];
+  positions.forEach(([x, y], i) => {
+    ctx.globalAlpha = 0.12 + Math.random() * 0.08;
+    ctx.font = `${40 + Math.random() * 40}px serif`;
+    ctx.fillText(hearts[i % hearts.length], x, y);
+  });
+  ctx.globalAlpha = 1;
+
+  // Central glass card effect
+  const cardX = 80, cardY = 500, cardW = W - 160, cardH = 920;
+  const cardR = 60;
+  ctx.save();
+  // Rounded rect path
+  ctx.beginPath();
+  ctx.moveTo(cardX + cardR, cardY);
+  ctx.lineTo(cardX + cardW - cardR, cardY);
+  ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + cardR);
+  ctx.lineTo(cardX + cardW, cardY + cardH - cardR);
+  ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - cardR, cardY + cardH);
+  ctx.lineTo(cardX + cardR, cardY + cardH);
+  ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - cardR);
+  ctx.lineTo(cardX, cardY + cardR);
+  ctx.quadraticCurveTo(cardX, cardY, cardX + cardR, cardY);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Left accent bar
+  const accentGrad = ctx.createLinearGradient(cardX, cardY + 100, cardX, cardY + cardH - 100);
+  accentGrad.addColorStop(0, '#ff4d6d');
+  accentGrad.addColorStop(1, '#e8b4f8');
+  ctx.fillStyle = accentGrad;
+  ctx.globalAlpha = 0.6;
+  ctx.fillRect(cardX, cardY + 100, 5, cardH - 200);
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // Big heart
+  ctx.font = '180px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('💖', W / 2, cardY + 220);
+
+  // "I said YES!" text
+  ctx.font = 'bold 90px "Segoe UI", Arial, sans-serif';
+  ctx.textAlign = 'center';
+  const yesGrad = ctx.createLinearGradient(W / 2 - 250, 0, W / 2 + 250, 0);
+  yesGrad.addColorStop(0, '#ff758f');
+  yesGrad.addColorStop(0.5, '#ffd700');
+  yesGrad.addColorStop(1, '#ff477e');
+  ctx.fillStyle = yesGrad;
+  ctx.fillText('I said YES!', W / 2, cardY + 420);
+
+  // Name
+  ctx.font = '52px "Segoe UI", Arial, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fillText(`to being`, W / 2, cardY + 530);
+
+  ctx.font = 'bold 72px "Segoe UI", Arial, sans-serif';
+  const nameGrad = ctx.createLinearGradient(W / 2 - 200, 0, W / 2 + 200, 0);
+  nameGrad.addColorStop(0, '#ff758f');
+  nameGrad.addColorStop(1, '#e8b4f8');
+  ctx.fillStyle = nameGrad;
+  ctx.fillText(`${name}'s`, W / 2, cardY + 640);
+
+  ctx.font = 'bold 110px "Segoe UI", Arial, sans-serif';
+  const valGrad = ctx.createLinearGradient(W / 2 - 300, 0, W / 2 + 300, 0);
+  valGrad.addColorStop(0, '#ff4d6d');
+  valGrad.addColorStop(0.5, '#ffd700');
+  valGrad.addColorStop(1, '#ff477e');
+  ctx.fillStyle = valGrad;
+  ctx.fillText('Valentine', W / 2, cardY + 790);
+
+  // Bear emoji
+  ctx.font = '100px serif';
+  ctx.fillText('🧸💐', W / 2, cardY + 900);
+
+  // Date
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  ctx.font = '36px "Segoe UI", Arial, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText(dateStr, W / 2, H - 180);
+
+  // "Forever & Always"
+  ctx.font = '48px "Segoe UI", Arial, sans-serif';
+  const foreverGrad = ctx.createLinearGradient(W / 2 - 180, 0, W / 2 + 180, 0);
+  foreverGrad.addColorStop(0, '#ffd700');
+  foreverGrad.addColorStop(1, '#ff758f');
+  ctx.fillStyle = foreverGrad;
+  ctx.fillText('Forever & Always ♾️', W / 2, H - 120);
+
+  // Set preview image
+  const dataUrl = canvas.toDataURL('image/png');
+  const preview = document.getElementById('cardPreview');
+  preview.src = dataUrl;
+
+  // Wire download button
+  const downloadBtn = document.getElementById('downloadBtn');
+  downloadBtn.onclick = () => {
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `valentine-${name.toLowerCase().replace(/\s+/g, '-')}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    downloadBtn.innerHTML = '<span>✅ Saved!</span>';
+    setTimeout(() => { downloadBtn.innerHTML = '<span>📥 Save Card</span>'; }, 2000);
+  };
 }
 
 function escapeHtml(str) {
