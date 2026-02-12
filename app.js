@@ -1,3 +1,8 @@
+// ===== SUPABASE CONFIG =====
+// TODO: Replace these with your own Supabase project values
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';  // e.g. https://abcdefg.supabase.co
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY'; // your anon/public key
+
 // ===== DOM ELEMENTS =====
 const heartsBg = document.getElementById('heartsBg');
 const creatorScreen = document.getElementById('creatorScreen');
@@ -622,22 +627,53 @@ function setupNoDodge(noBtn, yesBtn) {
   }, { passive: true });
 }
 
+// ===== SUPABASE HELPERS =====
+function genCode() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+async function supabaseSave(name, paragraphs) {
+  const code = genCode();
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/valentines`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify({ code, name, paragraphs })
+  });
+  if (!res.ok) throw new Error('Save failed');
+  return code;
+}
+
+async function supabaseLoad(code) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/valentines?code=eq.${code}&select=name,paragraphs`,
+    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+  );
+  if (!res.ok) return null;
+  const rows = await res.json();
+  if (rows.length === 0) return null;
+  return { name: rows[0].name, paragraphs: rows[0].paragraphs };
+}
+
 // ===== PARSE URL =====
-// Short code = 6 alphanumeric chars | Long = compressed/base64 data
 async function getDataFromURL() {
   if (!window.location.hash || window.location.hash.length <= 1) return null;
   const hash = window.location.hash.substring(1);
 
-  // Short code: 6 alphanumeric characters → fetch from server
+  // Short code: 6 alphanumeric characters → load from Supabase
   if (/^[a-z0-9]{6}$/.test(hash)) {
     try {
-      const res = await fetch(`/api/load/${hash}`);
-      if (res.ok) {
-        const data = await res.json();
-        return { data: { name: data.n, paragraphs: data.p }, code: hash };
-      }
+      const data = await supabaseLoad(hash);
+      if (data) return { data, code: hash };
     } catch (e) {
-      console.log('API unavailable, trying inline decode');
+      console.log('Supabase unavailable, trying inline decode');
     }
   }
 
@@ -701,30 +737,15 @@ generateBtn.addEventListener('click', async () => {
     ];
   }
 
-  // Disable button while generating
   generateBtn.disabled = true;
   generateBtn.innerHTML = '<span>Generating...</span>';
 
-  let basePath = window.location.pathname;
-  if (!basePath.endsWith('.html')) {
-    basePath = basePath.endsWith('/') ? basePath + 'index.html' : basePath + '/index.html';
-  }
-  const baseUrl = `${window.location.origin}${basePath}`;
+  const baseUrl = window.location.origin + window.location.pathname;
 
   try {
-    // Try to save via API for short code
-    const res = await fetch('/api/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ n: name, p: paragraphs })
-    });
-
-    if (res.ok) {
-      const { code } = await res.json();
-      linkText.value = `${baseUrl}#${code}`;
-    } else {
-      throw new Error('API error');
-    }
+    // Save to Supabase → get short code
+    const code = await supabaseSave(name, paragraphs);
+    linkText.value = `${baseUrl}#${code}`;
   } catch {
     // Fallback: LZ-compressed in URL
     const encoded = encodeData(name, paragraphs);
